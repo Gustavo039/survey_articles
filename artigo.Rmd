@@ -1,17 +1,116 @@
+---
+title: "Untitled"
+author: "Gustavo Almeida Silva"
+date: "14/06/2023"
+output:
+  pdf_document:
+    template: template.tex
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Resumo
+
+Este trabalho apresenta um estudo de simulação sobre métodos de amostragem complexa para a estimação da média amostral. Os métodos analisados são baseados em amostragem conglomerada em 1, 2 e 3 estágios. O objetivo é comparar o desempenho desses métodos em termos de eficiência e precisão da estimativa.
+
+A amostragem complexa é amplamente utilizada em pesquisas em que a população de interesse possui uma estrutura hierárquica ou está dividida em subpopulações distintas. A amostragem conglomerada é uma técnica comumente aplicada nesse contexto, em que a população é dividida em conglomerados e, em seguida, uma amostra é selecionada em cada conglomerado.
+
+Neste estudo, são simulados diferentes cenários com base em parâmetros de amostragem realistas. São considerados os métodos de amostragem conglomerada em 1, 2 e 3 estágios, nos quais a seleção dos conglomerados e das unidades amostrais é realizada de forma sequencial.
+
+Através das simulações, são comparados os estimadores das médias amostrais obtidos pelos diferentes métodos, levando em consideração a variância da estimativa e a eficiência em relação ao tamanho da amostra. Além disso, são avaliados possíveis vieses de estimadores e a precisão das estimativas em cada estágio da amostragem conglomerada.
+
+Os resultados das simulações fornecem insights valiosos sobre a adequação e o desempenho dos métodos de amostragem conglomerada em diferentes estágios. Espera-se que este estudo contribua para a compreensão das complexidades da amostragem em pesquisas com estrutura hierárquica e auxilie pesquisadores na escolha do método de amostragem mais apropriado para suas necessidades.
+
+# Introdução 
+
+# Metodologia
+
+# Simulações para Obtenção amostral
+
+```{r}
+set.seed(123)
 library(tidyverse)
 library(survey)
 library(sampling)
 
 df_alunos = read.table('https://raw.githubusercontent.com/Gustavo039/survey_articles/main/Alunos.txt', header = T)
 
-df_alunos |> glimpse()
+```
 
-## Sampling  methods
 
-set.seed(123)
+## Amostragem Estratificada
 
-## Amostragem por conglomerado 1 estágio (Metodo Iterativo)
 
+
+
+### Alocação Uniforme
+
+
+
+```{r}
+strata_size_unif = (rep(1/3,3) * 500) |> ceiling() 
+
+IAESs_unif = sampling::strata(df_alunos,
+                 stratanames = 'rede',
+                 size = strata_size_unif,
+                 method = 'srswor')
+```
+
+
+### Alocação Proporcional ao Tamanho
+
+```{r}
+strata_size_prop = df_alunos |>
+  group_by(rede) |>
+  reframe(group_size = (n()/(df_alunos |>nrow())) |>
+            {\(x) x * 500}() |>
+            ceiling())
+
+IAESs_prop = sampling::strata(df_alunos,
+                 stratanames = 'rede',
+                 size = strata_size_prop$group_size,
+                 method = 'srswor')
+```
+
+
+### Alocação Ótima de Neyman 
+
+```{r}
+
+neyman_calc = function(data, n) {
+  num = length(data) * sd(data) 
+  return(as.data.frame(num))
+}
+  
+strata_size_neyman = df_alunos |>
+  group_by(rede) 
+
+strata_size_neyman = strata_size_neyman |>
+  group_modify(~ neyman_calc(data = .x$port,n = 500)) |>
+  ungroup() |>
+  mutate(deno = sum(num)) |>
+  mutate(group_size = ((num/deno)*500) |> ceiling())
+  
+  
+
+IAESs_neyman = sampling::strata(df_alunos,
+                 stratanames = 'rede',
+                 size = strata_size_neyman$group_size,
+                 method = 'srswor')
+```
+
+
+
+
+## Amostragem Conglomerada
+
+### 1 estágio por Escola e 1 estágio por Turma
+
+#### Metodo Iterativo
+
+```{r}
 media_por_escola = df_alunos |>
   group_by(escola) |>
   summarise(alunos = n()) |>
@@ -111,18 +210,11 @@ IACS_ppt =
 
 IACS_ppt |>
   map(~.$n)
+```
 
+#### Via Grid de Valores
 
-## Amostragem por conglomerado 1 estágio (Metodo Via Grid de valores)
-
-df_alunos |> group_by(escola) |> reframe(nmax = n_distinct(aluno), escola_id = as.character(escola)) |>
-  ggplot2::ggplot(ggplot2::aes(escola_id, nmax)) +
-  ggplot2::geom_point()
-
-
-
-
-#### 1 estagio por escola 
+```{r}
 doParallel::registerDoParallel()
 replicate(500, 
           sampling::cluster(
@@ -133,10 +225,9 @@ replicate(500,
             n_distinct('ID_unit') 
 ) |>
   hist()
+```
 
-## Valor de otimização igual a 24
-
-#### 1 estagio por turma 
+```{r}
 replicate(1000, 
           sampling::cluster(
             df_alunos,
@@ -146,20 +237,13 @@ replicate(1000,
             n_distinct('ID_unit') 
 ) |>
   hist()
+```
 
-## Valor de otimização igual a 47
+### 2 estágio, UPA: Escolas, USA: Turmas
 
+#### Via Grid de Valores
 
-#### 2 Estagios por escola e turma
-
-sampling::mstage(
-  df_alunos, 
-  stage = c('cluster', 'cluster'),
-  varnames = c('escola', 'turma'),
-  size = list(2,1),
-  method = c("srswor", "srswor")
-)
-
+```{r}
 doParallel::registerDoParallel()
 grid = c(1:50)
 teste_obj = replicate(50, 
@@ -203,27 +287,5 @@ data.frame('N Cluster 1'= c(1:50),
            'Median' = cluster_replicate_median,
            'Mean' = cluster_replicate_mean, 
            'SD' = cluster_replicate_sd)
-
-doParallel::stopImplicitCluster()
-
-##########################################################################
-
-cluster_1_stage_schools = survey::svydesign(id = ~escola, 
-                                            data = df_alunos, 
-                                            fpc = ~fpc )
-
-cluster_1_stage_classes = survey::svydesign(id = ~turma, 
-                                            data = df_alunos, 
-                                            fpc = ~fpc )
-
-cluster_2_stage_schools_classes = survey::svydesign(id = ~escola + turma, 
-                                                    data = df_alunos, 
-                                                    fpc = ~fpc )
-
-
-
-
-
-
-
+```
 
