@@ -3,7 +3,8 @@ title: "Untitled"
 author: "Gustavo Almeida Silva"
 date: "14/06/2023"
 output:
-  pdf_document
+  pdf:
+    self-contained: true
 ---
 
 ```{r setup, include=FALSE}
@@ -497,4 +498,6 @@ data.frame('Estimativas' = ACS_cluster_1_grid_estimates[1,] |> unlist(),
 #                  method = 'srswor'))
 # )
 ```
+
+
 

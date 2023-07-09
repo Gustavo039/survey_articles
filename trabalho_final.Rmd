@@ -1,14 +1,38 @@
 ---
-title: "Untitled"
-author: "Gustavo Almeida Silva"
-date: "02/07/2023"
-output: 
-  pdf_document:
-    latex_engine: xelatex
+title: Trabalho Amostragem II
+subtitle: Do you have a subtitle? If so, write it here
+titlerunning: Short form of title (if too long for head)
+authorrunning:
+  Short form of author list if too long for running head
+thanks: |
+  Grants or other notes about the article that should go
+  on the front page should be placed here. General
+  acknowledgments should be placed at the end of the article.
+authors:
+  - name: Author 1
+    address: Department of YYY, University of XXX
+    email: abc@def
+  - name: Author 2
+    address: Department of ZZZ, University of WWW
+    email: djf@wef
+keywords:
+  - key
+  - dictionary
+  - word
+MSC:
+  - MSC code 1
+  - MSC code 2    
+abstract: |
+  The text of your abstract.  150 -- 250 words.
+output: rticles::jss_article
+bibliography: bibliography.bib  
 ---
 
+\newpage
+
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE, warnings = FALSE, message = FALSE)
+load("SimulacoesAmostragemLog.RData")
 ```
 
 # Resumo
@@ -27,7 +51,7 @@ Os resultados das simulações fornecem insights valiosos sobre a adequação e 
 
 A amostragem desempenha um papel fundamental na estatística, permitindo aos pesquisadores obterem informações sobre uma população a partir de uma amostra representativa. Através de métodos estatísticos robustos, é possível extrapolar conclusões precisas e confiáveis sobre a população em geral. No entanto, a amostragem muitas vezes enfrenta desafios práticos, como a seleção adequada das unidades amostrais e a consideração de complexidades inerentes a certos planos de amostragem.
 
-De forma geral, é amplamente reconhecido na teoria da amostragem que, embora o esquema de amostragem aleatória simples (AAS) seja teoricamente simples, na prática, é pouco utilizado devido às restrições orçamentárias e à busca por métodos probabilísticos que forneçam informações mais precisas. Além disso, é comum encontrar dificuldades na obtenção de cadastros adequados para o AAS, bem como lidar com situações de não resposta, o que requer considerar observações com pesos desiguais (Vierira 2005). A especificação inadequada na análise do plano amostral selecionado também pode resultar em estimativas enviesadas, destacando a importância de estudar metodologias que levem em conta o esquema de amostragem adotado.
+De forma geral, é amplamente reconhecido na teoria da amostragem que, embora o esquema de amostragem aleatória simples (AAS) seja teoricamente simples, na prática, é pouco utilizado devido às restrições orçamentárias e à busca por métodos probabilísticos que forneçam informações mais precisas. Além disso, é comum encontrar dificuldades na obtenção de cadastros adequados para o AAS, bem como lidar com situações de não resposta, o que requer considerar observações com pesos desiguais [@skinner2005design]. A especificação inadequada na análise do plano amostral selecionado também pode resultar em estimativas enviesadas, destacando a importância de estudar metodologias que levem em conta o esquema de amostragem adotado.
 
 Este artigo tem como objetivo explorar a interseção entre a amostragem em estatística e a simulação computacional, destacando como essa abordagem combinada pode contribuir para aprimorar a qualidade das inferências estatísticas. Serão apresentados conceitos fundamentais da amostragem, incluindo diferentes métodos de seleção amostral e as respectivas propriedades, e, em seguida, será discutido como a simulação computacional pode ser aplicada para investigar essas técnicas em contextos específicos.
 
@@ -77,7 +101,7 @@ Os metodos utilizados foram:
   
 # Estudo de Simulação
 
-Considerou-se como variavel de interesse a média da variavel Port com transformação logaritmo natural, ou seja, a variavel estimada via diferentes metodos de amostragem complexa foi: ${ln({Port})$
+Considerou-se como variavel de interesse a média da variavel Port com transformação logaritmo natural, ou seja, a variavel estimada via diferentes metodos de amostragem complexa foi: $ln({Port})$
 
 Para a cada plano amostral, foram replicadas 1000 vezes amostras de tamanho 500 e 1000 vezes amostras de tamanho 750, para cada *pool* foram calculadas as estimativas pontuais, o erro padrão e o intervalo de confiança de $95\%$
 
@@ -85,298 +109,51 @@ Para avaliar o desempenho de cada plano amostral. foram consideradas metricas co
 
 O verdadeiro valor da variavel estimada é de:
 
-$$\bar{ln(Port)} = 6.218181$$
+$$
+\frac{\sum_{i=1}^n{ln(Port_i)}}{n} = 6.218181
+$$
 
-O conhecimento de tal valor é importantíssimo para o calculo do viés e consequente a decisão sobre o plano maostral mais adequado para o problema
+O conhecimento de tal valor é importantíssimo para o calculo do viés e consequente a decisão sobre o plano maostral mais adequado para o problema.
 
-
-```{r}
-set.seed(123)
-library(tidyverse)
-library(survey)
-library(sampling)
-
-df_alunos = read.table('https://raw.githubusercontent.com/Gustavo039/survey_articles/main/Alunos.txt', header = T) |>
-  mutate(log_port = log(port), .keep = 'unused')
-
-real_log_port = df_alunos$log_port |> mean()
-
-```
 
 ## Amostragem Estratificada
 
-
-```{r}
-aes_unif_size=function(n_size, n_strata){
-  ret = ((rep(1/n_strata,n_strata) * n_size) |> ceiling() )
-  return(ret)
-}
-
-aes_prop_size = function(n_size){
-  df_alunos |>
-  group_by(rede) |>
-  reframe(group_size = (n()/(df_alunos |>nrow())) |>
-            {\(x) x * n_size}() |>
-            ceiling())
-}
-
-  neyman_calc = function(data, n) {
-  num = length(data) * sd(data) 
-  return(as.data.frame(num))
-}
-
-aes_neyman_size =  function(n_size){
-  
-strata_size_neyman = df_alunos |>
-  group_by(rede) 
-
-strata_size = strata_size_neyman |>
-  group_modify(~ neyman_calc(data = .x$log_port,n = n_size)) |>
-  ungroup() |>
-  mutate(deno = sum(num)) |>
-  mutate(group_size = ((num/deno)*n_size) |> ceiling())
-  
-}
-
-
-AES_estimates = function(df_data = df_alunos, strat_name, rep_size, sample_size, sample_size_type)
-{
-  if(sample_size_type == 'uniform'){
-    strata_size = df_data |> select(all_of(strat_name)) |> n_distinct()
-    strata_size = aes_unif_size(sample_size, strata_size)
-  }
-  else 
-    if(sample_size_type == 'proportional'){
-      if(strat_name == 'escola'){
-           strata_size =  df_alunos |>
-                          group_by(escola) |>
-                          reframe(group_size = (n()/(df_data |>nrow())) |>
-                                    {\(x) x * sample_size}() |>
-                                    ceiling())|>
-                          {\(x) x$group_size}()
-      }
-      else
-        if(strat_name == 'rede'){
-           strata_size =  df_alunos |>
-                          group_by(rede) |>
-                          reframe(group_size = (n()/(df_data |>nrow())) |>
-                                    {\(x) x * sample_size}() |>
-                                    ceiling())|>
-                          {\(x) x$group_size}()
-      }
-    }
-  else{
-    if(strat_name == 'escola'){
-       strata_size = 
-                      df_alunos |>
-                      group_by(escola) 
-                    
-                    strata_size = strata_size |>
-                      group_modify(~ neyman_calc(data = .x$log_port,n = n_size)) |>
-                      ungroup() |>
-                      mutate(deno = sum(num)) |>
-                      mutate(group_size = ((num/deno)*n_size) |> ceiling())|>
-                          {\(x) x$group_size}()
-    }
-    else
-      if(strat_name == 'rede'){
-       strata_size = 
-                      df_alunos |>
-                      group_by(rede) 
-                    
-                    strata_size = strata_size |>
-                      group_modify(~ neyman_calc(data = .x$log_port,n = sample_size)) |>
-                      ungroup() |>
-                      mutate(deno = sum(num)) |>
-                      mutate(group_size = ((num/deno)*sample_size) |> ceiling())|>
-                          {\(x) x$group_size}()
-    }
-  }
-
-  
-IAESs = replicate(n = rep_size, 
-                expr = sampling::strata(df_alunos,
-                     stratanames = strat_name,
-                     size = strata_size,
-                     method = 'srswor') |>
-                  {\(x) data.frame(x$ID_unit, x$Prob)}()
-)
-
-AESs = sapply(1:rep_size, function(i) {
-  df_alunos |>
-  filter(aluno %in% IAESs[,i]$x.ID_unit) 
-  }
-)
-
-fpc_calc = function(N,n){
-  ret = (((N-n)/(N-1))**(1/2))
-  return(ret)
-}
-
-AESs_estimates = sapply(1:rep_size,function(i){
-  plan = svydesign(~1, strata=~rede, data = AESs[,i] |> as.data.frame(), probs=~IAESs[,i]$x.Prob)
-  svymean(~log_port,plan) |>
-  as.data.frame()
-}
-)
-
-
-ret = data.frame('Estimativas' = AESs_estimates[1,] |> unlist(), 
-                 'ErroPadrão' = AESs_estimates[2,] |> unlist()) |>
-  mutate('IntContReal' = ifelse(real_log_port > Estimativas - 1.96 * ErroPadrão & real_log_port < Estimativas + 1.96 * ErroPadrão,
-                                1, 0)
-         )
-  
-return(ret)
-}
-```
-
-
 ### Estratificada por Rede
-
-``` {r}
-AES_estimates_unif_rede = AES_estimates(df_alunos, strat_name = 'rede', rep_size = 1000, sample_size = 500, sample_size_type = 'uniform')
-
-AES_estimates_prop_rede = AES_estimates(df_alunos, strat_name = 'rede', rep_size = 1000, sample_size = 500, sample_size_type = 'proportional')
-
-AES_estimates_neyman_rede = AES_estimates(df_alunos, strat_name = 'rede', rep_size = 1000, sample_size = 500, sample_size_type = 'neyman')
-```
-
 
 Temos as seguintes estatísticas após 1000 replicações:
 
 ```{r}
+results$AES_estimates_table_rede_500 |>
+  dplyr::bind_rows()
+```
 
-aess_table = function(data){
-  ret = data |>
-  modify(mean) |>
-  slice(1) |>
-  mutate(Vies = Estimativas - real_log_port) |>
-  mutate(EQM = Vies^2 + ErroPadrão^2) 
-  
-  return(ret)
-}
-
-AES_estimates_table_rede =  list(AES_estimates_unif_rede, AES_estimates_prop_rede, AES_estimates_neyman_rede) |>
-  map(aess_table) 
-
-# AES_estimates_table_rede = bind_rows(AES_estimates_table_rede[[1]], AES_estimates_table_rede[[2]], AES_estimates_table_rede[[3]])
-# rownames(AES_estimates_table) = c('Uniforme', 'Proporcional', 'Neyman')
-
+```{r}
+results$AES_estimates_table_rede_750 |>
+  dplyr::bind_rows()
 ```
 
 ### Estratificada por Escola
 
-``` {r}
-doParallel::registerDoParallel()
-AES_estimates_unif_escola = AES_estimates(df_alunos, strat_name = 'escola', rep_size = 1000, sample_size = 500, sample_size_type = 'uniform')
+```{r}
+results$AES_estimates_table_escola_500 |>
+  dplyr::bind_rows()
+```
 
-AES_estimates_prop_escola = AES_estimates(df_alunos, strat_name = 'escola', rep_size = 1000, sample_size = 500, sample_size_type = 'proportional')
-
-AES_estimates_neyman_escola = AES_estimates(df_alunos, strat_name = 'escola', rep_size = 1000, sample_size = 500, sample_size_type = 'neyman')
+```{r}
+results$AES_estimates_table_escola_750 |>
+  dplyr::bind_rows()
 ```
 
 ## Amostragem Conglomerada
 
 ```{r}
-media_por_escola = df_alunos |>
-  group_by(escola) |>
-  summarise(alunos = n()) |>
-  pull(alunos) |>
-  mean()
-
-media_por_turma = df_alunos |>
-  group_by(turma) |>
-  summarise(alunos = n()) |>
-  pull(alunos) |>
-  mean()
-
-df_alunos |>
-  group_by(escola) |>
-  summarise(turmas = length(unique(turma))) |>
-  pull(turmas)|>
-  summary()
-
-select_from_n_cluster = function(n, var, ppt = F, tam = NULL){
-  
-  n_vars = length(var)
-  f = ifelse(
-    n_vars == 1, 
-    ifelse(
-      ppt,
-      function(x){
-        sampling::cluster(
-          x,
-          clustername = var,
-          size = 1,
-          method = c("poisson"),
-          pik =  sampling::inclusionprobabilities(
-            x |>
-              mutate(alunos = 1:n()) |>
-              group_by_at(var) |>
-              summarise_at(tam, ~length(unique(.))) |>
-              pull(tam), 1
-          )
-        ) |>
-          list()
-      },
-      function(x){
-        sampling::cluster(
-          x,
-          clustername = var,
-          size = 1,
-          method = c("srswor")
-        ) |>
-          list()
-      }), 
-    function(x){
-      sampling::mstage(
-        x, 
-        stage = rep("cluster", n_vars),
-        varnames = var,
-        size = lapply(rep(1, n_vars), function(x) x),
-        method = rep("srswor", n_vars)
-      )
-    }
-  )
-  indexes = f(df_alunos)
-  i = 0
-  while(i < n){
-    indexes_new = f(df_alunos[-indexes[[length(indexes)]]$ID_unit,])
-    if(is.null(indexes_new[[1]])) next
-    
-    indexes = map2(
-      indexes, 
-      indexes_new, 
-      function(x, y) rbind(x, y)
-    )
-    
-    i = nrow(indexes[[length(indexes)]]) 
-  }
-  
-  indexes$n = i
-  return(indexes)
-}
-
-
-set.seed(123)
-IACS =
-  list("escola", "turma", c("escola", "turma"), c("rede", "escola", "turma")) |>
-  map(~select_from_n_cluster(n = 750, .)) 
-
-IACS |>
-  map(~.$n)
-
-IACS_ppt =
-  mapply(
-    function(var, tam){ select_from_n_cluster(n = 750, var = var, ppt = T, tam = tam) },
-    var = c("escola", "escola"),
-    tam =  c("turma", "alunos"),
-    SIMPLIFY = F
-  ) |>
-  setNames(c("turma", "alunos"))
-
-IACS_ppt |>
-  map(~.$n)
+#results$IACS |>
+#  purrr::map(~.$n)
+#
+#results$IACS_ppt |>
+#  purrr::map(~.$n)
 ```
 
+# Conclusão
+
+# Referências

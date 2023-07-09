@@ -220,10 +220,3 @@ cluster_2_stage_schools_classes = survey::svydesign(id = ~escola + turma,
                                                     data = df_alunos, 
                                                     fpc = ~fpc )
 
-
-
-
-
-
-
-
