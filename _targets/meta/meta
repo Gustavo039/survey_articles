@@ -1,0 +1,51 @@
+name|type|data|command|depend|seed|path|time|size|bytes|format|repository|iteration|parent|children|seconds|warnings|error
+AES_estimates|function|6ba3713917043380|||||||||||||||
+AES_estimates_table_escola|stem|7f19cfaef3dde80c|ef00aa11391b4a69|1ca6b709321bdeb8|-981193186||t19547.6314015502s|42c2e1b6ea6d88db|322|rds|local|vector|||338.48||
+AES_estimates_table_escola_500|stem|7f19cfaef3dde80c|348e8893ed17ac5b|a565b11fdeadab0c|-608881802||t19547.6806779771s|42c2e1b6ea6d88db|322|rds|local|vector|||373.85||
+AES_estimates_table_escola_750|stem|23c4fc38c6189b88|73680bc230370975|65b29b771fb68014|-1988576689||t19547.6851182356s|42c2e1b6ea6d88db|322|rds|local|vector|||383.61||
+AES_estimates_table_rede|stem|1690ffbac27be03c|1268454202c929db|d2dee15ae501659a|-434303656||t19547.6399276753s|f008763eb0bfd232|318|rds|local|vector|||26.55||
+AES_estimates_table_rede_500|stem|1690ffbac27be03c|81586291543dd3a9|530e1b2fceffcfb5|392378027||t19547.676350488s|f008763eb0bfd232|318|rds|local|vector|||31.89||
+AES_estimates_table_rede_750|stem|a8181f47ade8eade|c32be660632e8249|53a2617449d3159a|-1106431017||t19547.6854604442s|42c2e1b6ea6d88db|322|rds|local|vector|||29.2||
+aes_neyman_size|function|56c113389c83100d|||||||||||||||
+aes_prop_size|function|f3fb8d7edf21a18e|||||||||||||||
+aes_unif_size|function|7dd45a223919684a|||||||||||||||
+aess_table|function|ec75fc02e1bfb5ac|||||||||||||||
+conglomerada|function|5fe7948093d8f51f|||||||||||||||
+conglomerada_ppt|function|1edc373ddba3d904|||||||||||||||
+data|stem|d40ede54c27f42a6|7700c433805de9d4|d0de9e3ce5fff3e3|1588979285||t19547.6086907457s|131bd2a3d14550c9|51969|rds|local|vector|||2.28|package dplyr was built under R version 4.2.3. package survival was built under R version 4.2.3. package sampling was built under R version 4.2.3. package tidyr was built under R version 4.2.3|
+estartificada_rede_table|stem||1268454202c929db|f3318c5bcfb142e6|435509781||t19547.6086944166s||0|rds|local|vector|||0.15||object df_alunos not found
+estratificada_escola|function|ee070ca29c7c23a5|||||||||||||||
+estratificada_escola_500|function|ee070ca29c7c23a5|||||||||||||||
+estratificada_escola_750|function|f85dc1bfda1d63e9|||||||||||||||
+estratificada_rede|function|a5803f33b530d20c|||||||||||||||
+estratificada_rede_500|function|a5803f33b530d20c|||||||||||||||
+estratificada_rede_750|function|8099c0e9ba7f56ea|||||||||||||||
+estratificada_rede_table|stem|0b2fb46e098bd084|1268454202c929db|723f5e80178f2ba3|-841992814||t19547.6237732272s|09ba59ab403de298|314|rds|local|vector|||53.66||
+file|stem||0d543927ee972726|ef46db3751d8e999|-1301001980|https://raw.githubusercontent.com/Gustavo039/survey_articles/main/Alunos.txt|t19547.605937754s||0|file|local|vector|||||_paths_ missing files httpsraw.githubusercontent.comGustavo039survey_articlesmainAlunos.txt
+files|object|f7a0898f0adc0038|||||||||||||||
+IACS|stem|08d3f9a244ae52c6|ea7db24adc73bc62|ac7ebc4858707af8|486959397||t19547.659236267s||79822|rds|local|vector|||0.2||1m22m36mℹ39m In index 1.1mCaused by error in select_from_n_cluster22m33m39m argument n is missing, with no default
+IACS_500|stem||93f86b529fe74afc|228c48851b7bad18|-496021982||t19547.7173125907s||0|rds|local|vector|||0||could not find function conglomerada_500
+IACS_ppt|stem|d4da2bebb6638843|f0afd0904e01c794|6a0f233c1a948927|1438485603||t19547.6592561167s|76afde9ca65fb2a9|4171|rds|local|vector|||1.67||
+neyman_calc|function|85c1552c9d0305d4|||||||||||||||
+read_file|function|69a33440ba893fcb|||||||||||||||
+save_image|function|8388c887ee8ec2b1|||||||||||||||
+select_from_n_cluster|function|5b06b4647566f87e|||||||||||||||
+status|stem|8136fc7d779e3b81|a2d9537f34e45cd6|b3bb49639768cc27|1711913059||t19547.6854621108s|44989414465ff33d|49|rds|local|vector|||0.03||
+aes_unif_size|function|7dd45a223919684a
+neyman_calc|function|85c1552c9d0305d4
+aess_table|function|ec75fc02e1bfb5ac
+select_from_n_cluster|function|5b06b4647566f87e
+files|object|f7a0898f0adc0038
+read_file|function|69a33440ba893fcb
+save_image|function|8388c887ee8ec2b1
+AES_estimates|function|6ba3713917043380
+conglomerada_ppt|function|1edc373ddba3d904
+conglomerada|function|5fe7948093d8f51f
+estratificada_escola_750|function|f85dc1bfda1d63e9
+estratificada_rede_750|function|8099c0e9ba7f56ea
+estratificada_escola_500|function|ee070ca29c7c23a5
+estratificada_rede_500|function|a5803f33b530d20c
+conglomerada_500|function|a20802da2f6f5933
+conglomerada_ppt_750|function|f0bc5925c5294e28
+conglomerada_750|function|f0bc5925c5294e28
+conglomerada_ppt_500|function|a20802da2f6f5933
