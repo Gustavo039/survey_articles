@@ -1,0 +1,503 @@
+---
+title: "Untitled"
+author: "Gustavo Almeida Silva"
+date: "14/06/2023"
+output:
+  pdf:
+    self-contained: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Resumo
+
+Este trabalho apresenta um estudo de simulação sobre métodos de amostragem complexa para a estimação da média amostral. Os métodos analisados são baseados em amostragem conglomerada em 1, 2 e 3 estágios. O objetivo é comparar o desempenho desses métodos em termos de eficiência e precisão da estimativa.
+
+A amostragem complexa é amplamente utilizada em pesquisas em que a população de interesse possui uma estrutura hierárquica ou está dividida em subpopulações distintas. A amostragem conglomerada é uma técnica comumente aplicada nesse contexto, em que a população é dividida em conglomerados e, em seguida, uma amostra é selecionada em cada conglomerado.
+
+Neste estudo, são simulados diferentes cenários com base em parâmetros de amostragem realistas. São considerados os métodos de amostragem conglomerada em 1, 2 e 3 estágios, nos quais a seleção dos conglomerados e das unidades amostrais é realizada de forma sequencial.
+
+Através das simulações, são comparados os estimadores das médias amostrais obtidos pelos diferentes métodos, levando em consideração a variância da estimativa e a eficiência em relação ao tamanho da amostra. Além disso, são avaliados possíveis vieses de estimadores e a precisão das estimativas em cada estágio da amostragem conglomerada.
+
+Os resultados das simulações fornecem insights valiosos sobre a adequação e o desempenho dos métodos de amostragem conglomerada em diferentes estágios. Espera-se que este estudo contribua para a compreensão das complexidades da amostragem em pesquisas com estrutura hierárquica e auxilie pesquisadores na escolha do método de amostragem mais apropriado para suas necessidades.
+
+# Introdução 
+
+# Metodologia
+
+# Simulações para Obtenção amostral
+
+```{r}
+set.seed(123)
+library(tidyverse)
+library(survey)
+library(sampling)
+
+df_alunos = read.table('https://raw.githubusercontent.com/Gustavo039/survey_articles/main/Alunos.txt', header = T)
+
+```
+
+
+## Amostragem Estratificada
+
+
+
+
+### Alocação Uniforme
+
+
+
+```{r}
+strata_size_unif = (rep(1/3,3) * 500) |> ceiling() 
+
+IAESs_unif = sampling::strata(df_alunos,
+                 stratanames = 'rede',
+                 size = strata_size_unif,
+                 method = 'srswor')
+```
+
+
+### Alocação Proporcional ao Tamanho
+
+```{r}
+strata_size_prop = df_alunos |>
+  group_by(rede) |>
+  reframe(group_size = (n()/(df_alunos |>nrow())) |>
+            {\(x) x * 500}() |>
+            ceiling())
+
+IAESs_prop = sampling::strata(df_alunos,
+                 stratanames = 'rede',
+                 size = strata_size_prop$group_size,
+                 method = 'srswor')
+```
+
+
+### Alocação Ótima de Neyman 
+
+```{r}
+
+neyman_calc = function(data, n) {
+  num = length(data) * sd(data) 
+  return(as.data.frame(num))
+}
+  
+strata_size_neyman = df_alunos |>
+  group_by(rede) 
+
+strata_size_neyman = strata_size_neyman |>
+  group_modify(~ neyman_calc(data = .x$port,n = 500)) |>
+  ungroup() |>
+  mutate(deno = sum(num)) |>
+  mutate(group_size = ((num/deno)*500) |> ceiling())
+  
+  
+
+IAESs_neyman = sampling::strata(df_alunos,
+                 stratanames = 'rede',
+                 size = strata_size_neyman$group_size,
+                 method = 'srswor')
+```
+
+
+
+
+## Amostragem Conglomerada
+
+### 1 estágio por Escola e 1 estágio por Turma
+
+#### Metodo Iterativo
+
+```{r}
+media_por_escola = df_alunos |>
+  group_by(escola) |>
+  summarise(alunos = n()) |>
+  pull(alunos) |>
+  mean()
+
+media_por_turma = df_alunos |>
+  group_by(turma) |>
+  summarise(alunos = n()) |>
+  pull(alunos) |>
+  mean()
+
+df_alunos |>
+  group_by(escola) |>
+  summarise(turmas = length(unique(turma))) |>
+  pull(turmas)|>
+  summary()
+
+select_from_n_cluster = function(n, var, ppt = F, tam = NULL){
+  
+  n_vars = length(var)
+  f = ifelse(
+    n_vars == 1, 
+    ifelse(
+      ppt,
+      function(x){
+        sampling::cluster(
+          x,
+          clustername = var,
+          size = 1,
+          method = c("poisson"),
+          pik =  sampling::inclusionprobabilities(
+            x |>
+              mutate(alunos = 1:n()) |>
+              group_by_at(var) |>
+              summarise_at(tam, ~length(unique(.))) |>
+              pull(tam), 1
+          )
+        ) |>
+          list()
+      },
+      function(x){
+        sampling::cluster(
+          x,
+          clustername = var,
+          size = 1,
+          method = c("srswor")
+        ) |>
+          list()
+      }), 
+    function(x){
+      sampling::mstage(
+        x, 
+        stage = rep("cluster", n_vars),
+        varnames = var,
+        size = lapply(rep(1, n_vars), function(x) x),
+        method = rep("srswor", n_vars)
+      )
+    }
+  )
+  indexes = f(df_alunos)
+  i = 0
+  while(i < n){
+    indexes_new = f(df_alunos[-indexes[[length(indexes)]]$ID_unit,])
+    if(is.null(indexes_new[[1]])) next
+    
+    indexes = map2(
+      indexes, 
+      indexes_new, 
+      function(x, y) rbind(x, y)
+    )
+    
+    i = nrow(indexes[[length(indexes)]]) 
+  }
+  
+  indexes$n = i
+  return(indexes)
+}
+
+
+set.seed(123)
+IACS =
+  list("escola", "turma", c("escola", "turma"), c("rede", "escola", "turma")) |>
+  map(~select_from_n_cluster(n = 750, .)) 
+
+IACS |>
+  map(~.$n)
+
+IACS_ppt =
+  mapply(
+    function(var, tam){ select_from_n_cluster(n = 750, var = var, ppt = T, tam = tam) },
+    var = c("escola", "escola"),
+    tam =  c("turma", "alunos"),
+    SIMPLIFY = F
+  ) |>
+  setNames(c("turma", "alunos"))
+
+IACS_ppt |>
+  map(~.$n)
+```
+
+#### Via Grid de Valores
+
+```{r}
+set.seed(123)
+doParallel::registerDoParallel()
+replicate(500, 
+          sampling::cluster(
+            df_alunos,
+            clustername = 'escola' ,
+            size = 16,
+            method = c("srswor")) |> 
+            n_distinct('ID_unit') 
+) |>
+  hist()
+```
+
+```{r}
+replicate(1000, 
+          sampling::cluster(
+            df_alunos,
+            clustername = 'turma' ,
+            size = 47,
+            method = c("srswor")) |> 
+            n_distinct('ID_unit') 
+) |>
+  hist()
+```
+
+### 2 estágio, UPA: Escolas, USA: Turmas
+
+#### Via Grid de Valores
+
+```{r}
+doParallel::registerDoParallel()
+grid = c(1:50)
+teste_obj = replicate(2, 
+  sapply(1:50, function(i){
+    cluster_sample_1 = sampling::cluster(
+      df_alunos,
+      clustername = 'escola',
+      size = grid[i],
+      method = c("srswor")
+      )
+    
+    df_2_cluster = df_alunos |>
+      filter(escola %in% (cluster_sample_1$escola |> unique())) 
+    
+    minimal_school = df_2_cluster|>
+      group_by(escola) |>
+      reframe(count = n_distinct(turma)) |>
+      slice_min(count, n = 1)
+    
+    
+    cluster_sample_final = sampling::mstage(
+      df_2_cluster, 
+      stage = c('cluster', 'cluster'),
+      varnames = c('escola', 'turma'),
+      size = list(df_2_cluster$escola |> n_distinct(),
+                  minimal_school$count |> unique()),
+      method = c("srswor", "srswor")
+    )
+      
+      return(cluster_sample_final$`2` |> nrow())
+    
+  }
+)
+)
+
+cluster_replicate_median = apply(teste_obj, 1, median)
+cluster_replicate_mean = apply(teste_obj, 1, mean)
+cluster_replicate_sd = apply(teste_obj, 1, sd)
+
+data.frame('N Cluster 1'= c(1:50), 
+           'Median' = cluster_replicate_median,
+           'Mean' = cluster_replicate_mean, 
+           'SD' = cluster_replicate_sd)
+```
+
+# Estudo de Estimação
+
+## Amostras via Estratificação
+
+* Alocação Uniforme
+
+```{r}
+IAESs_unif = replicate(n = 1000, 
+                expr = sampling::strata(df_alunos,
+                     stratanames = 'rede',
+                     size = strata_size_unif,
+                     method = 'srswor') |>
+                  {\(x) data.frame(x$ID_unit, x$Prob)}()
+)
+```
+
+```{r}
+AESs_unif = sapply(1:1000, function(i) {
+  df_alunos |>
+  filter(aluno %in% IAESs_unif[,i]$x.ID_unit) |>
+  mutate(log_port = log(port), .keep = 'unused')
+  }
+)
+```
+
+```{r}
+fpc_calc = function(N,n){
+  ret = (((N-n)/(N-1))**(1/2))
+  return(ret)
+}
+
+AESs_unif_estimates = sapply(1:1000,function(i){
+  plan = svydesign(~1, strata=~rede, data = AESs_unif[,i] |> as.data.frame(), probs=~IAESs_unif[,i]$x.Prob)
+  svymean(~log_port,plan) |>
+  as.data.frame()
+}
+)
+```
+
+
+```{r}
+data.frame('Estimativas' = AESs_unif_estimates[1,] |> unlist(), 
+           'ErroPadrão' = AESs_unif_estimates[2,] |> unlist())
+```
+
+* Alocação PPT
+
+```{r}
+
+strata_size_prop = df_alunos |>
+  group_by(rede) |>
+  reframe(group_size = (n()/(df_alunos |>nrow())) |>
+            {\(x) x * 500}() |>
+            ceiling())
+
+
+IAESs_prop = replicate(n = 1000, 
+                expr = sampling::strata(df_alunos,
+                 stratanames = 'rede',
+                 size = strata_size_prop$group_size,
+                 method = 'srswor') |>
+                  {\(x) data.frame(x$ID_unit, x$Prob)}()
+)
+```
+
+```{r}
+AESs_prop = sapply(1:1000, function(i) {
+  df_alunos |>
+  filter(aluno %in% IAESs_prop[,i]$x.ID_unit) |>
+  mutate(log_port = log(port), .keep = 'unused')
+  }
+)
+```
+
+```{r}
+fpc_calc = function(N,n){
+  ret = (((N-n)/(N-1))**(1/2))
+  return(ret)
+}
+
+AESs_prop_estimates = sapply(1:1000,function(i){
+  plan = svydesign(~1, strata=~rede, data = AESs_prop[,i] |> as.data.frame(), probs=~IAESs_prop[,i]$x.Prob)
+  svymean(~log_port,plan) |>
+  as.data.frame()
+}
+)
+```
+
+
+```{r}
+data.frame('Estimativas' = AESs_prop_estimates[1,] |> unlist(), 
+           'ErroPadrão' = AESs_prop_estimates[2,] |> unlist())
+```
+
+
+* Alocação Ótima de Neyman
+
+```{r}
+neyman_calc = function(data, n) {
+  num = length(data) * sd(data) 
+  return(as.data.frame(num))
+}
+  
+strata_size_neyman = df_alunos |>
+  group_by(rede) 
+
+strata_size_neyman = strata_size_neyman |>
+  group_modify(~ neyman_calc(data = .x$port,n = 500)) |>
+  ungroup() |>
+  mutate(deno = sum(num)) |>
+  mutate(group_size = ((num/deno)*500) |> ceiling())
+  
+  
+IAESs_neyman = replicate(n = 1000, 
+                expr = sampling::strata(df_alunos,
+                 stratanames = 'rede',
+                 size = strata_size_neyman$group_size,
+                 method = 'srswor') |>
+                  {\(x) data.frame(x$ID_unit, x$Prob)}()
+)
+```
+
+```{r}
+AESs_neyman = sapply(1:1000, function(i) {
+  df_alunos |>
+  filter(aluno %in% IAESs_neyman[,i]$x.ID_unit) |>
+  mutate(log_port = log(port), .keep = 'unused')
+  }
+)
+```
+
+```{r}
+fpc_calc = function(N,n){
+  ret = (((N-n)/(N-1))**(1/2))
+  return(ret)
+}
+
+AESs_neyman_estimates = sapply(1:1000,function(i){
+  plan = svydesign(~1, strata=~rede, data = AESs_neyman[,i] |> as.data.frame(), probs=~IAESs_neyman[,i]$x.Prob)
+  svymean(~log_port,plan) |>
+  as.data.frame()
+}
+)
+```
+
+
+```{r}
+data.frame('Estimativas' = AESs_prop_estimates[1,] |> unlist(), 
+           'ErroPadrão' = AESs_prop_estimates[2,] |> unlist())
+```
+
+
+## Amostras via Conglomeração
+
+### 
+
+```{r}
+IACS[[1]]
+```
+O valor do tamanho do conglomerado numero de escolas estimado via Grid foi de 16
+
+```{r}
+set.seed(123)
+
+IACS_cluster_1_grid = replicate(n = 1000, 
+          expr = sampling::cluster(
+                  df_alunos,
+                  clustername = 'escola' ,
+                  size = 16,
+                  method = c("srswor")) |>
+            {\(x) data.frame(x$ID_unit, x$Prob)}()
+)
+
+ACS_cluster_1_grid = sapply(1:1000, function(i) {
+  df_alunos |>
+  filter(aluno %in% IACS_cluster_1_grid[,1]$x.ID_unit) |>
+  mutate(log_port = log(port), .keep = 'unused')
+  }
+)
+
+ACS_cluster_1_grid_estimates=sapply(1:1000, function(i){
+                                       plan = svydesign(id=~escola, 
+                                       data = ACS_cluster_1_grid[,i] |> as.data.frame(), 
+                                       probs=~IACS_cluster_1_grid[,i]$x.Prob)
+  
+                                       svymean(~log_port,plan) |>
+                                       as.data.frame()
+  }
+)
+
+data.frame('Estimativas' = ACS_cluster_1_grid_estimates[1,] |> unlist(), 
+           'ErroPadrão' = ACS_cluster_1_grid_estimates[2,] |> unlist())
+
+```
+
+
+```{r}
+# microbenchmark::microbenchmark(
+#   sap = sapply(1:20, function(i){sampling::strata(df_alunos,
+#                  stratanames = 'rede',
+#                  size = strata_size_unif,
+#                  method = 'srswor')}),
+#   rep = replicate(n = 20, expr = sampling::strata(df_alunos,
+#                  stratanames = 'rede',
+#                  size = strata_size_unif,
+#                  method = 'srswor'))
+# )
+```
+
+
+
