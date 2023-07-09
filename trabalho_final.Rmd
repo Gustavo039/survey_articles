@@ -77,7 +77,7 @@ Os metodos utilizados foram:
   
 # Estudo de Simulação
 
-Considerou-se como variavel de interesse a média da variavel Port com transformação logaritmo natural, ou seja, a variavel estimada via diferentes metodos de amostragem complexa foi: $ln(\bar {Port})$
+Considerou-se como variavel de interesse a média da variavel Port com transformação logaritmo natural, ou seja, a variavel estimada via diferentes metodos de amostragem complexa foi: ${ln({Port})$
 
 Para a cada plano amostral, foram replicadas 1000 vezes amostras de tamanho 500 e 1000 vezes amostras de tamanho 750, para cada *pool* foram calculadas as estimativas pontuais, o erro padrão e o intervalo de confiança de $95\%$
 
@@ -85,12 +85,9 @@ Para avaliar o desempenho de cada plano amostral. foram consideradas metricas co
 
 O verdadeiro valor da variavel estimada é de:
 
-$$\bar{Port} = 511.7484$$
+$$\bar{ln(Port)} = 6.218181$$
 
-E portanto: 
-
-$$ln(\bar{Port}) = ln(511.7484) = 6.237833$$
-O conhecimento de talk valor é importantíssimo para o calculo do viés e consequente a decisão sobre o plano maostral mais adequado para o problema
+O conhecimento de tal valor é importantíssimo para o calculo do viés e consequente a decisão sobre o plano maostral mais adequado para o problema
 
 
 ```{r}
@@ -99,7 +96,10 @@ library(tidyverse)
 library(survey)
 library(sampling)
 
-df_alunos = read.table('https://raw.githubusercontent.com/Gustavo039/survey_articles/main/Alunos.txt', header = T)
+df_alunos = read.table('https://raw.githubusercontent.com/Gustavo039/survey_articles/main/Alunos.txt', header = T) |>
+  mutate(log_port = log(port), .keep = 'unused')
+
+real_log_port = df_alunos$log_port |> mean()
 
 ```
 
@@ -107,8 +107,8 @@ df_alunos = read.table('https://raw.githubusercontent.com/Gustavo039/survey_arti
 
 
 ```{r}
-aes_unif_size=function(n_size){
-  ret = ((rep(1/3,3) * n_size) |> ceiling() )
+aes_unif_size=function(n_size, n_strata){
+  ret = ((rep(1/n_strata,n_strata) * n_size) |> ceiling() )
   return(ret)
 }
 
@@ -120,18 +120,18 @@ aes_prop_size = function(n_size){
             ceiling())
 }
 
-aes_neyman_size =  function(n_size){
-  
   neyman_calc = function(data, n) {
   num = length(data) * sd(data) 
   return(as.data.frame(num))
 }
+
+aes_neyman_size =  function(n_size){
   
 strata_size_neyman = df_alunos |>
   group_by(rede) 
 
 strata_size = strata_size_neyman |>
-  group_modify(~ neyman_calc(data = .x$port,n = n_size)) |>
+  group_modify(~ neyman_calc(data = .x$log_port,n = n_size)) |>
   ungroup() |>
   mutate(deno = sum(num)) |>
   mutate(group_size = ((num/deno)*n_size) |> ceiling())
@@ -142,16 +142,55 @@ strata_size = strata_size_neyman |>
 AES_estimates = function(df_data = df_alunos, strat_name, rep_size, sample_size, sample_size_type)
 {
   if(sample_size_type == 'uniform'){
-    strata_size = aes_unif_size(sample_size)
+    strata_size = df_data |> select(all_of(strat_name)) |> n_distinct()
+    strata_size = aes_unif_size(sample_size, strata_size)
   }
   else 
     if(sample_size_type == 'proportional'){
-    strata_size = aes_prop_size(sample_size) |>
-      {\(x) x$group_size}()
-   }
+      if(strat_name == 'escola'){
+           strata_size =  df_alunos |>
+                          group_by(escola) |>
+                          reframe(group_size = (n()/(df_data |>nrow())) |>
+                                    {\(x) x * sample_size}() |>
+                                    ceiling())|>
+                          {\(x) x$group_size}()
+      }
+      else
+        if(strat_name == 'rede'){
+           strata_size =  df_alunos |>
+                          group_by(rede) |>
+                          reframe(group_size = (n()/(df_data |>nrow())) |>
+                                    {\(x) x * sample_size}() |>
+                                    ceiling())|>
+                          {\(x) x$group_size}()
+      }
+    }
   else{
-    strata_size = aes_neyman_size(sample_size)|>
-      {\(x) x$group_size}()
+    if(strat_name == 'escola'){
+       strata_size = 
+                      df_alunos |>
+                      group_by(escola) 
+                    
+                    strata_size = strata_size |>
+                      group_modify(~ neyman_calc(data = .x$log_port,n = n_size)) |>
+                      ungroup() |>
+                      mutate(deno = sum(num)) |>
+                      mutate(group_size = ((num/deno)*n_size) |> ceiling())|>
+                          {\(x) x$group_size}()
+    }
+    else
+      if(strat_name == 'rede'){
+       strata_size = 
+                      df_alunos |>
+                      group_by(rede) 
+                    
+                    strata_size = strata_size |>
+                      group_modify(~ neyman_calc(data = .x$log_port,n = sample_size)) |>
+                      ungroup() |>
+                      mutate(deno = sum(num)) |>
+                      mutate(group_size = ((num/deno)*sample_size) |> ceiling())|>
+                          {\(x) x$group_size}()
+    }
   }
 
   
@@ -165,8 +204,7 @@ IAESs = replicate(n = rep_size,
 
 AESs = sapply(1:rep_size, function(i) {
   df_alunos |>
-  filter(aluno %in% IAESs[,i]$x.ID_unit) |>
-  mutate(log_port = log(port), .keep = 'unused')
+  filter(aluno %in% IAESs[,i]$x.ID_unit) 
   }
 )
 
@@ -183,16 +221,25 @@ AESs_estimates = sapply(1:rep_size,function(i){
 )
 
 
-data.frame('Estimativas' = AESs_estimates[1,] |> unlist(), 
-           'ErroPadrão' = AESs_estimates[2,] |> unlist())
-
+ret = data.frame('Estimativas' = AESs_estimates[1,] |> unlist(), 
+                 'ErroPadrão' = AESs_estimates[2,] |> unlist()) |>
+  mutate('IntContReal' = ifelse(real_log_port > Estimativas - 1.96 * ErroPadrão & real_log_port < Estimativas + 1.96 * ErroPadrão,
+                                1, 0)
+         )
+  
+return(ret)
 }
+```
 
-AES_estimates_unif = AES_estimates(df_alunos, strat_name = 'rede', rep_size = 1000, sample_size = 500, sample_size_type = 'uniform')
 
-AES_estimates_prop = AES_estimates(df_alunos, strat_name = 'rede', rep_size = 1000, sample_size = 500, sample_size_type = 'proportional')
+### Estratificada por Rede
 
-AES_estimates_neyman = AES_estimates(df_alunos, strat_name = 'rede', rep_size = 1000, sample_size = 500, sample_size_type = 'neyman')
+``` {r}
+AES_estimates_unif_rede = AES_estimates(df_alunos, strat_name = 'rede', rep_size = 1000, sample_size = 500, sample_size_type = 'uniform')
+
+AES_estimates_prop_rede = AES_estimates(df_alunos, strat_name = 'rede', rep_size = 1000, sample_size = 500, sample_size_type = 'proportional')
+
+AES_estimates_neyman_rede = AES_estimates(df_alunos, strat_name = 'rede', rep_size = 1000, sample_size = 500, sample_size_type = 'neyman')
 ```
 
 
@@ -204,17 +251,132 @@ aess_table = function(data){
   ret = data |>
   modify(mean) |>
   slice(1) |>
-  mutate(Vies = Estimativas - 6.237833) |>
+  mutate(Vies = Estimativas - real_log_port) |>
   mutate(EQM = Vies^2 + ErroPadrão^2) 
   
   return(ret)
 }
 
-AES_estimates_table =  list(AES_estimates_unif, AES_estimates_prop, AES_estimates_neyman) |>
+AES_estimates_table_rede =  list(AES_estimates_unif_rede, AES_estimates_prop_rede, AES_estimates_neyman_rede) |>
   map(aess_table) 
 
-AES_estimates_table = bind_rows(AES_estimates_table[[1]], AES_estimates_table[[2]], AES_estimates_table[[3]])
-rownames(AES_estimates_table) = c('Uniforme', 'Proporcional', 'Neyman')
+# AES_estimates_table_rede = bind_rows(AES_estimates_table_rede[[1]], AES_estimates_table_rede[[2]], AES_estimates_table_rede[[3]])
+# rownames(AES_estimates_table) = c('Uniforme', 'Proporcional', 'Neyman')
 
+```
+
+### Estratificada por Escola
+
+``` {r}
+doParallel::registerDoParallel()
+AES_estimates_unif_escola = AES_estimates(df_alunos, strat_name = 'escola', rep_size = 1000, sample_size = 500, sample_size_type = 'uniform')
+
+AES_estimates_prop_escola = AES_estimates(df_alunos, strat_name = 'escola', rep_size = 1000, sample_size = 500, sample_size_type = 'proportional')
+
+AES_estimates_neyman_escola = AES_estimates(df_alunos, strat_name = 'escola', rep_size = 1000, sample_size = 500, sample_size_type = 'neyman')
+```
+
+## Amostragem Conglomerada
+
+```{r}
+media_por_escola = df_alunos |>
+  group_by(escola) |>
+  summarise(alunos = n()) |>
+  pull(alunos) |>
+  mean()
+
+media_por_turma = df_alunos |>
+  group_by(turma) |>
+  summarise(alunos = n()) |>
+  pull(alunos) |>
+  mean()
+
+df_alunos |>
+  group_by(escola) |>
+  summarise(turmas = length(unique(turma))) |>
+  pull(turmas)|>
+  summary()
+
+select_from_n_cluster = function(n, var, ppt = F, tam = NULL){
+  
+  n_vars = length(var)
+  f = ifelse(
+    n_vars == 1, 
+    ifelse(
+      ppt,
+      function(x){
+        sampling::cluster(
+          x,
+          clustername = var,
+          size = 1,
+          method = c("poisson"),
+          pik =  sampling::inclusionprobabilities(
+            x |>
+              mutate(alunos = 1:n()) |>
+              group_by_at(var) |>
+              summarise_at(tam, ~length(unique(.))) |>
+              pull(tam), 1
+          )
+        ) |>
+          list()
+      },
+      function(x){
+        sampling::cluster(
+          x,
+          clustername = var,
+          size = 1,
+          method = c("srswor")
+        ) |>
+          list()
+      }), 
+    function(x){
+      sampling::mstage(
+        x, 
+        stage = rep("cluster", n_vars),
+        varnames = var,
+        size = lapply(rep(1, n_vars), function(x) x),
+        method = rep("srswor", n_vars)
+      )
+    }
+  )
+  indexes = f(df_alunos)
+  i = 0
+  while(i < n){
+    indexes_new = f(df_alunos[-indexes[[length(indexes)]]$ID_unit,])
+    if(is.null(indexes_new[[1]])) next
+    
+    indexes = map2(
+      indexes, 
+      indexes_new, 
+      function(x, y) rbind(x, y)
+    )
+    
+    i = nrow(indexes[[length(indexes)]]) 
+  }
+  
+  indexes$n = i
+  return(indexes)
+}
+
+
+set.seed(123)
+IACS =
+  list("escola", "turma", c("escola", "turma"), c("rede", "escola", "turma")) |>
+  map(~select_from_n_cluster(n = 750, .)) 
+
+IACS |>
+  map(~.$n)
+
+IACS_ppt =
+  mapply(
+    function(var, tam){ select_from_n_cluster(n = 750, var = var, ppt = T, tam = tam) },
+    var = c("escola", "escola"),
+    tam =  c("turma", "alunos"),
+    SIMPLIFY = F
+  ) |>
+  setNames(c("turma", "alunos"))
+
+IACS_ppt |>
+  map(~.$n)
 ```
 
