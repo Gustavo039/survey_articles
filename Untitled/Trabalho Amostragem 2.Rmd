@@ -18,6 +18,8 @@ classoptions:
 
 title: Estudo Comparativo de Planos Amostrais Complexos na Estimação da Média de Notas Escolares
 titlerunning: Article Title runing
+fontsize: 12pt
+font-family: times new roman
 
 authors: 
   - firstname: Pedro
@@ -79,6 +81,7 @@ output: rticles::springer_article
 
 ---
 
+
 \newpage
 
 ```{r setup, include=FALSE}
@@ -91,14 +94,12 @@ load("../SimulacoesAmostragemLog.RData")
 
 A amostragem desempenha um papel fundamental na estatística, permitindo aos pesquisadores obterem informações sobre uma população a partir de uma amostra representativa. Através de métodos estatísticos robustos, é possível extrapolar conclusões precisas e confiáveis sobre a população em geral. No entanto, a amostragem muitas vezes enfrenta desafios práticos, como a seleção adequada das unidades amostrais e a consideração de complexidades inerentes a certos planos de amostragem.
 
-
 De forma geral, é amplamente reconhecido na teoria da amostragem que, embora o esquema de amostragem aleatória simples (AAS) seja teoricamente simples, na prática, é pouco utilizado devido às restrições orçamentárias e à busca por métodos probabilísticos que forneçam informações mais precisas. Além disso, é comum encontrar dificuldades na obtenção de cadastros adequados para o AAS, bem como lidar com situações de não resposta, o que requer considerar observações com pesos desiguais [@skinner2005design]. A especificação inadequada na análise do plano amostral selecionado também pode resultar em estimativas enviesadas, destacando a importância de estudar metodologias que levem em conta o esquema de amostragem adotado.
 
-A simulação de Monte Carlo é uma técnica estatística que envolve a geração de múltiplas amostras aleatórias com base em modelos probabilísticos. É amplamente utilizada para avaliar incertezas, estimar parâmetros e estudar o desempenho de métodos estatísticos em uma variedade de áreas [@kroese2012monte]. 
+A simulação de Monte Carlo é uma técnica estatística que envolve a geração de múltiplas amostras aleatórias com base em modelos probabilísticos[@kleijnen1995verification]. É amplamente utilizada para avaliar incertezas, estimar parâmetros e estudar o desempenho de métodos estatísticos em uma variedade de áreas [@kroese2012monte]. 
 
 Nesse contexto, o trabalho tem como objetivo explorar a interseção entre a amostragem e a simulação computacional via método Monte Carlo, destacando como essa abordagem combinada pode contribuir para aprimorar a qualidade das inferências estatísticas. Serão apresentados conceitos fundamentais da amostragem, incluindo diferentes métodos de seleção amostral e as respectivas propriedades, e, em seguida, será discutido como a simulação computacional pode ser aplicada para investigar essas técnicas em contextos específicos.
 
-Ao integrar a simulação computacional à amostragem estatística, os pesquisadores podem explorar virtualmente uma ampla gama de cenários de amostragem, considerando diferentes planos amostrais, tamanhos de amostra e distribuições populacionais. Além disso, a simulação permite a avaliação de métricas de desempenho, como viés e erro padrão, fornecendo insights valiosos sobre a precisão e a eficiência dos métodos de amostragem em diferentes contextos.
 
 # Metodologia
 
@@ -115,6 +116,8 @@ Rede  | Rede de ensino
 Escola| ID da escola
 Turma | ID da turma
 Port  | Nota no teste de portugues de cada aluno, é tambem a variável de interesse desse trabalho
+
+Nenhuma observação possuia valores faltantes, e portanto não foi necessário técnicas de imputação de dados
 
 Os metodos estudados foram:
 
@@ -134,6 +137,12 @@ Os metodos estudados foram:
   + 1 estágio por Escolas, tamanho via número de turmas
   + 1 estágio por Escolas, tamanho via número de alunos
   
+Para a seleção amostral utilizou-se o pacote do software R **sampling**, já para para os cálculos das estimativas foi utilizado o pacote **survey**. Ambas documentações detalhadas são encontradas em:
+
+* [Doc. Sampling](https://cran.r-project.org/web/packages/sampling/sampling.pdf)
+
+* [Doc. Survey](https://cran.r-project.org/web/packages/survey/survey.pdf)
+  
 # Estudo de Simulação
 
 Considerou-se como variavel de interesse a média da variavel Port com transformação logaritmo natural, ou seja, a variavel estimada via diferentes metodos de amostragem complexa foi: $ln({Port})$
@@ -141,7 +150,7 @@ Considerou-se como variavel de interesse a média da variavel Port com transform
 
 Para a cada plano amostral, foram replicadas 1000 vezes amostras de tamanho 500 e 750, para cada replicação foram calculadas as estimativas pontuais e seu o erro padrão
 
-Para avaliar o desempenho de cada plano amostral. foram consideradas metricas como **Víes, Erro-padrão, Erro Quadrático Médio e a Proporção de captação do valor paramétrico no intervalo de confiança de $95\%$ da estimativa**. 
+Para avaliar o desempenho de cada plano amostral. foram consideradas metricas como **Víes, erro padrão, Erro Quadrático Médio Relativo e a Proporção de captação do valor paramétrico no intervalo de confiança de $95\%$ da estimativa**. 
 
 O verdadeiro valor da variável estimada é de:
 
@@ -168,9 +177,11 @@ Enquanto o estimador da variância do estimador de média é dado por:
 
 $$\hat V_{AES}(\bar y_{AES}) = \sum_{h=1}^{H}W_h^2(\frac{1}{n_h}-\frac{1}{N_h})s_h^2$$
 
+Tais estimadores foram utilizados para os cálculos das estimativas (via pacote **survey**)
+
 Nesse contexto, trabalhou-se com duas divisões de estratos: Rede e Escola.
 
-Primeiramente foi realizada 1000 replicações com um tamanho amostral igual a 500, após isso realizou-se novamente 1000 replicações com 750.
+Primeiramente foi realizada 1000 replicações com um tamanho amostral igual a 500, após isso realizou-se novamente 1000 replicações com tamanho amostral igual a 750.
 
 Foram consideradas 3 tipos de alocação amostral
 
@@ -221,7 +232,7 @@ Proporcional |6.218293 | 0.0090885 | 0.951 | 0.0001121 | 0.0000826
 Neyman       |6.218179 | 0.0090841 | 0.964 | -0.0000020 | 0.0000825
 
 
-Vemos um ótimo desempenho dos 3 tipos de alocação, onde todos apresentaram um EQM extremamente baixo. O intervalo de confiança considerado foi de $95%$, assim vemos que o metodo de alocação Proporcional foi aquele que mais se aproximou desse valor. Os demais metodos apresentaram taxa de rejeição inferior ao nivel de significancia definida.
+Observou-se um ótimo desempenho dos 3 tipos de alocação, onde todos apresentaram um EQM baixo. A proporção de vezes em que o intervalo de confiança de 95% incluiu o valor paramétrico se mostrou próximo de 95% para os 3 métodos, onde a Alocação Ótima de Neyman foi aquele a apresentar a melhor métrica, apresentando a maior proporção de inclusão do valor paramétrico tendo o menor erro padrão entre os 3 métodos, indicando uma boa precisão das estimativas
 
 #### n = 750
 
@@ -234,18 +245,19 @@ results$AES_estimates_table_rede_750 |>
   purrr::pluck(1)
 ```
 
-Alocação     | Estimativas| ErroPadrão | $IC(95\%)\subset \theta$ | Viés | EQM
+Alocação     | $\hat{\theta}$ | $\hat{EP(\theta)}$ | $IC(95\%)\subset \theta$ | Viés | EQM 
 -------------|---------|-----------|-------|----------|--------
 Uniforme     |6.217622 | 0.0085606 | 0.968 | -0.0005597 | 7.36e-05
 Proporcional |6.218224 | 0.0074278 | 0.960 | 0.0000427 | 5.52e-05
 Neyman       |6.217922 | 0.0074324 | 0.966 | -0.0002592 | 5.53e-05
 
 
-Com base nos resultados obtidos a partir do estudo de simulação, pode-se verificar que os intervalos de confiança de 95% conteram o valor real, aproximadamente, 95% das vezes, como era o esperado. Além disso, viu-se que, a alocação Uniforme apresentou o maior erro quadrático médio entre as 3 alocações, por outro lado as alocações Proporcional e Ótima de Neyman tiveram resultados semelhantes.
 
-Além disso, podemos verificar, que o erro padrão e o erro quadrático médio apresentou diminuição ao aumentar o tamanho amostral. No entanto, não houve uma melhora significativa em relação ao viés.
+Aumentando o tamanho amostral, observou-se que os 3 metodos tiveram uma melhora em seus desempenhos. O EQM se mostrou ainda menor. Além disso, a proporção de vezes de inclusão do valor paramétrico no intervalo de confiança de 95% mostrou um aumento em relação ao tamanho amostral 500, onde todos os métodos apresentaram uma taxa de inclusão maior com um menor erro padrão, indicando uma boa precisão das estimativas
 
 ### Estratificada por Escola
+
+Após aplicar as 1000 replicações utilizando o método de Monte Carlo, obteu-se as seguintes estimativas
 
 ```{r}
 #| eval: false
@@ -256,13 +268,15 @@ results$AES_estimates_table_escola_500 |>
   purrr::pluck(1)
 ```
 
-Alocação     | Estimativas | ErroPadrão | $IC(95\%)\subset \theta$ | Viés | EQM
+#### n = 500
+
+Alocação     | $\hat{\theta}$ | $\hat{EP(\theta)}$ | $IC(95\%)\subset \theta$ | Viés | EQM 
 -------------|---------|-----------|-------|----------|--------
 Uniforme     |6.218014 | 0.0094822 | 0.981 | -0.0001673 | 8.99e-05
 Proporcional |6.217734 | 0.0084041 | 0.983 | -0.0004475 | 7.08e-05
 Neyman       |6.217978 | 0.0086743 | 0.986 | -0.0002035 | 7.53e-05
 
-Os 3 metodos apresentaram um erro quadrático médio baixo, porém o intervalo de confiança não obteve desempenho desejado. Definido um nivel de confiança de $5\%$, viu-se que os três métodos apresentaram um nível de rejeição menor que o esperado.
+Os 3 metodos apresentaram um erro quadrático médio baixo, sendo menor que aquele obtido via estratificação por Rede. Além disso, a proporção de vezes de inclusão do valor paramétrico no intervalo de confiança de 95% mostrou-se alto, com todos os métodos apresentando taxa de inclusão maior que 0.980. O método de Alocação Ótima de Neyman e Alocação Proporcional obtiveram as melhores métricas, possuindo as maiores taxas de inclusão do valor paramétrico possuindo os menores erros padrões
 
 
 ```{r}
@@ -274,14 +288,15 @@ results$AES_estimates_table_escola_750 |>
   purrr::pluck(1)
 ```
 
-Alocação     | Estimativas | ErroPadrão | $IC(95\%)\subset \theta$ | Viés | EQM
+#### n = 750
+
+Alocação     | $\hat{\theta}$ | $\hat{EP(\theta)}$ | $IC(95\%)\subset \theta$ | Viés | EQM 
 -------------|---------|-----------|-------|----------|--------
 Uniforme     |6.218394 | 0.0081765 | 0.982 | 0.0002125 | 6.69e-05
 Proporcional |6.218155 | 0.0070644 | 0.991 | -0.0000268 | 4.99e-05
 Neyman       |6.218010 | 0.0072053 | 0.984 | -0.0001719 | 5.19e-05
 
-Apesar do aumento do tamanho amostral, não observou-se uma diminuição do **EQM**, além disso o 3 métodos apresentaram alta de taxa de não rejição em seus intervalos de confiança, ou seja, um rejeição bem menor que $5\%$
-
+Aumentando o tamanho amostral, não observou-se uma melhora no EQM dos 3 métodos (valor esse que ja era extremamente baixo). Apesar disso, a proporção de vezes de inclusão do valor paramétrico no intervalo de confiança de 95% apresntou melhora em todos os métodos. O método de Alocação Proporcional foi aquele a apresentar a melhor métrica, tendo incluindo o valor paramétrico em seu intervalo em 99.1% das replicações, e apresentando o menor erro padrão entre os métodos, indicando uma ótima precisão das estimativas
 
 ## Amostragem Conglomerada
 
@@ -295,37 +310,117 @@ Enquanto o estimador da variância do estimador natural é dado por:
 
 $$\hat V_{ACS}(\bar y_{N}) = \frac{1}{\bar M^2}\frac{1-f}{n}s_e^2$$
 
-```{r}
-#results$IACS |>
-#  purrr::map(~.$n)
-#
-#results$IACS_ppt |>
-#  purrr::map(~.$n)
-```
-
-# Tempo de execução computacional
-
-  Durante a construção do trabalho, certos planos amostrais apresentaram um desempenho ligeiramente melhor que outros, porém tal melhoria um tempo de execução computacional razoável.
-  
-  Uma métrica importantíssima que as métricas estatísticas não captam é aquela de tempo de execução computacional, tal métrica pode indicar qual plano amostral é superior quando as métricas estatísticas se mostrarem próximas
-
-Assim, este tópico busca comparar os tempos de execução computacional dos métodos já estudados
-
-Tempo de execução para calculos de estimativas a partir de uma amostra já definida é ínfimo quando comparado ao tempo de execução de funções de calculado de alocação e seleção amostral, assim apenas as funções de alocação e seleção amostral foram utilizadas para a estimativa do tempo gasto. ^[Setup: Intel i5-11400; 8gb à 2666mhz]
+Tais estimadores foram utilizados para os cálculos das estimativas (via pacote **survey**)
 
 
+As funções computacionais utilizadas nesse trabalho do pacote **sampling** não permitem a seleção do tamanho amostral final em uma amostragem conglomerada, é possível apenas definir o tamanho de cada conglomerado. Assim, buscando um tamanho amostral próximo a 500 e 750, foi construído o seguinte algoritmo de seleção amostral.
 
-* Amostragem Estratificada
 
-Alocação     | Média por Replicação | Total 
+* 1 estágio
+
+![](D:\UFJF_materias\Amostragem2\survey_articles\Untitled\figs\congl_1.png){width=25%, height=40%}
+
+
+* 2 estágios
+
+![](D:\UFJF_materias\Amostragem2\survey_articles\Untitled\figs\congl_2.png){width=30%, height=45%}
+
+* 3 estágios
+
+![](D:\UFJF_materias\Amostragem2\survey_articles\Untitled\figs\congl_3.png){width=35%, height=50%}
+
+
+\newpage
+
+### Conglomerados 
+
+Após aplicar as 1000 replicações utilizando o método de Monte Carlo, obteu-se as seguintes estimativas
+
+#### n = 500
+
+Conglomeração           |$\hat{\theta}$ | $\hat{EP(\theta)}$ | $IC(95\%)\subset \theta$ | Viés | EQM 
+------------------------|-----------|------------|-------------|-------|-----
+Escola                  | 6.220454 | 0.0288410 | 0.904 | 0.0022722 | 0.0009215
+Turma                   |6.219460 | 0.0244669 | 0.944 | 0.0012786 | 0.0005880
+Escola e Turma          | 6.220118 | 0.0262029 | 0.917 | 0.0019367 | 0.0008067
+Escola, Turma e Aluno   | 6.220172 | 0.0138810 | 0.987 | 0.0019904 | 0.0001177
+
+Observou-se que os 4 métodos apresentaram um EQM baixo, onde o melhor foi aquele dado pelo metodo divido em 3 estágios. Observando a proporção de vezes que o intervalo de 95% conteve o valor paramétrico, vemos que novamente o método com 3 estágios apresentou melhor desempenho, apresentando uma alta taxa de englobamento do valor paramétrico e um erro padrão baixo indicando que as estimativas estão precisas. O método a apresentar pior desempenho foi aquele com apenas 1 estágio de conglomeração por escola, apresentando um EQM alto e uma baixo inclusão do valor parametrico em seu intervalo de confiança de 95%
+
+#### n = 750
+
+Conglomeração           |$\hat{\theta}$ | $\hat{EP(\theta)}$ | $IC(95\%)\subset \theta$ | Viés | EQM 
+------------------------|-----------|------------|-------------|-------|-----
+Escola                  |6.218883 | 0.0239705 | 0.916 | 0.0007016 | 0.0006286
+Turma                   |6.219579 | 0.0198613 | 0.934 | 0.0013977 | 0.0004302
+Escola e Turma          |6.219389 | 0.0220708 | 0.926 | 0.0012072 | 0.0005188
+Escola, Turma e Aluno   |6.219319 | 0.0125530 | 0.992 | 0.0011375 | 0.0000814
+
+Aumentando o tamanho amostral, observou-se que os 4 metodos tiveram uma melhora em seus desempenhos. O melhor método continou sendo aquele com 3 estágios de conglomeração e o pior método foi aquele com apenas 1 estágio de conglomeração por escola
+
+
+### Conglomerados com PPT Poisson
+
+Realizou-se amostragem conglomerada em 1 estágio por escola com PPT Poisson das variáveis Turma e Escola. Foram obtidas as seguintes estimativas após 1000 replicações  
+
+#### n = 500
+
+Proporcional|$\hat{\theta}$ | $\hat{EP(\theta)}$ | $IC(95\%)\subset \theta$ | Viés | EQM 
 -------------|---------|-----------|-------|----------|--------
-Uniforme     |6.218394 | 0.0081765 | 0.982 | 0.0002125 | 6.69e-05
-Proporcional |6.218155 | 0.0070644 | 0.991 | -0.0000268 | 4.99e-05
-Neyman       |6.218010 | 0.0072053 | 0.984 | -0.0001719 | 5.19e-05
+Turma       |6.218823 | 0.0299626 | 0.912 | 0.0006420 | 0.0009433
+Aluno       |6.221696 | 0.0305077 | 0.918 | 0.0035142 | 0.0009983
+
+Observou-se que ambos os métodos apresnetaram um EQM baixo, porém maior que todos os métodos conglomerados sem PPT Poisson. Além disso, vemos que ambos os intervalos de confiança de 95% tiverem uma baixa inclusão do valor parametrico, em torno de 0.92, indicando um pior desempenho quando comparados aos demais métodos ja vistos
+
+#### n = 750
+
+$\hat{\theta}$ | $\hat{EP(\theta)}$ | $IC(95\%)\subset \theta$ | Viés | EQM 
+-------------|---------|-----------|-------|----------|--------
+Turma       |6.219528 | 0.0253059 | 0.937 | 0.0013468 | 0.0006852
+Aluno       |6.219404 | 0.0253226 | 0.940 | 0.0012230 | 0.0005924
+
+Aumentando o tamanho amostral, observou-se que os 2 metodos tiveram uma melhora em seus desempenhos. O EQM apresentou valores menores e a proporção que o intervalo de confiança de 95% incluiu o valor paramétrico se aproximou do valor teórico fixado de 95%, porém ainda se mostrando abaixo desse nível
+
+
+# Recomendações
+
+Através do estudo de simulação realizado, padrões e insights valiosos de cada plano amostral puderam ser vistos.
+
+A amostragem via estratificação foi aquela a apresentar melhor desempenho (assim como era esperado por conta de resultados teóricos). Ambas as variáveis utilizadas para estratificação apresentaram um baixo EQM, assim como uma boa taxa de inclusão do valor paramétrico em seus intervalos de confiança de 95%. Realizando um estudo da taxa de inclusão por erro padrão, observou-se que a variável Escola, se mostrou como uma variável de estratificação superior que Rede, com taxas maiores e erros padrões menores.
+
+Dentre os métodos de alocações utilizados, a Alocação Proporcional ao Tamanho e a Alocação Ótima de Neyman foram aquelas a apresentarem melhor desempenho. Utilizando a variável de estratificação como Escola, a Alocação Proporcional ao Tamanho apresentou métricas superiores a Alocação Ótima de Neyman, com um EQM menor, erro padrão menor e uma taxa de inclusão do valor paramétrico maior
+
+A seleção amostral estratificada apresntou um tempo razoável de execução, não passando de 17 minutos para realizar 1000 replicações, indicando um tempo menor que 1.02 segundos por replicação
+
+A amostragem em conglomerados apresentou um desempenho pior que a amostragem estratificada. Os EQM entre ambos planos amostrais foram semelhantes, porém a taxa de inclusão do valor paramétrico nos intervalos de confiança de 95% para cada replicação foram inferiores, apresentando um erro padrão maior com uma menor taxa de inclusão, ou seja, apesar dos intervalos de confianças serem maiores e portanto serem capazes de englobarem uma maior gama de valores, o valor paramétrico não foi incluido em maiores proporções
+
+Uma tipo de conglomeração que fugiu da observação acima foi aquela por 3 estágios, onde ela apresentou o menor erro padrão entre os métodos de conglomeração (ainda maior que todos os planos estratificados) sendo capaz de apresentar um alta taxa de inclusão do valor paramétrico, 0.987 para tamanho amostral igual a 500 e 0.992 para tamanho amostral igual a 750.
+
+Método de PPT de Poisson não apresentaram um bom desempenho, possuindo uma baixa taxa de inclusão do valor paramétrico em seus intervalos de confiança apesar do erro padrão alto. Além disso, apresentaram os piores valores do EQM entre todos os métodos testados 
+
+Um grande empecilho para seleção amostral via conglomeração foi o tempo de execução, onde certas simulações apresentaram tempo de execução maiores que 3 horas, ou seja mais que 108 segundos por replicação. Esse tempo pode ser explicado pelo algoritmo de seleção utilizado, que buscou otimizar a busca pelo tamanho amostral desejado.
+Outro método testado de se encontrar a combinação ideal entre número de conglomerados para a otimização do tamanho amostral desejado foi via grid de valores. Eram fixados valores inteiros e atráves de intensa simulação e replicação, anotava-se a combinação de número de conglomerados para cada estágio que otimiza-se o tamanho amostral desejado. O método se mostrou altamente ineficaz, dado o tamanho amostral final para cada combinação do grid era uma variável aleátoria. Observou-se que se tratava de uma distribuição Normal, onde desejou-se que sua média fosse o tamanho amostral desejado, apesar disso, a distribuição apresentava um desvio padrão altíssimo, onde portanto por mais que fossem encontrados os valores do grid que otimizassem o tamanho amostral desejado (parâmetroi de locação da distribuição), o tamanho amostral simulado em cada replicação era extramente volátil e com alta variabilidade
 
 
 
+\newpage
 
 # Conclusão
 
-  @pfeffermann1996use, @kleijnen1995verification
+O advento da era computacional no século XX afetou a sociedade como um todo, em especial, os estatísticos, fazendo com que a profissão passasse a ser composta por uma tríplice combinação entre estatística, matemática e computação. Sob esta nova perspectiva profissional, para se conduzir um processo de modelagem estatística é necessário que as três componentes deste processo sejam exploradas [@Pacheco]. 
+  
+Assim, foram realizadas comparações detalhadas entre diferentes planos amostrais complexos por meio do uso do método de simulação Monte Carlo. Através da geração de múltiplas amostras simuladas, pode-se analisar o desempenho de cada plano amostral em termos de precisão, viés e outros indicadores de qualidade das estimativas. Os resultados obtidos forneceram insights valiosos para auxiliar na seleção do plano amostral mais adequado, levando em consideração as características específicas da população em estudo. 
+
+Ao realizar comparações entre os planos amostrais, viu-se um desempenho superior dos métodos de estratificação, apresentando uma boa taxa de inclusão do valor paramétrico para os 3 métodos de alocações vistos. Além disso, eles apresentaram um baixo tempo de execução e portanto se caracterizaram como o melhor método estudado. Dentro deles, a estratificação por Escola se mostrou superior a estratificação por Rede, apresentando melhores EQMs e uma melhor taxa de inclusão do valor paramétrico por erro padrão
+
+Dentro do amostragem conglomerada, o tempo de execução se mostrou como um empecilho, onde certas replicações apresentaram tempo de execução maiores que 3 horas. Entres esses planos amostrais, aqueles que se utilizaram PPT de Poisson apresentaram um desempenho ruim. Conglomeração em 3 estãgios se mostrou como o melhor método através do algoritmo de seleção amostral utilizado
+
+Ao integrar a simulação computacional à amostragem estatística, os pesquisadores podem explorar virtualmente uma ampla gama de cenários de amostragem, considerando diferentes planos amostrais, tamanhos de amostra e distribuições populacionais. Além disso, a simulação permite a avaliação de métricas de desempenho, como viés e erro padrão, fornecendo insights valiosos sobre a precisão e a eficiência dos métodos de amostragem em diferentes contextos.
+
+# Código 
+
+O código utilizado nesse trabalho pode visto em : [github.com/monte_carlo_complex_survey_rtargets](https://github.com/Gustavo039/survey_articles/tree/main/R)
+
+Ou em: [github.com/monte_carlo_complex_survey_r](https://github.com/Gustavo039/survey_articles/tree/main/R)
+
+\newpage
