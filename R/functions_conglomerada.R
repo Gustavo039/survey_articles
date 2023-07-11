@@ -59,25 +59,26 @@ conglomerada_ppt = function(df_alunos, n){
   set.seed(065)
   IACS_ppt =
       mapply(
-        function(var, tam){ replicate(1000, select_from_n_cluster(df_alunos, n = n, var = var, ppt = T, tam = tam)) },
-        var = c("escola", "escola"),
-        tam =  c("turma", "alunos"),
+        function(var, tam){ 
+          replicate(1000, select_from_n_cluster(df_alunos, n = n, var = var, ppt = T, tam = tam))
+           },
+        var = list("escola", "escola"),
+        tam =  list("turma", "alunos"),
         SIMPLIFY = F
       ) |>
-      setNames(c("turma", "alunos"))
+      setNames(c("escola", "escola"))
 
   medias = 
-      IACS |>
+      IACS_ppt |>
       map2(
-        .y = names(IACS),
+        .y = names(IACS_ppt),
         function(.x, .y){
           .x[nrow(.x)-1,] |>
             lapply( 
               function(x){
-                data = sampling::getdata(df_alunos, x) 
-                plan = 
-                  survey::svydesign(data = data, ids =as.formula(paste("~", gsub("_", "+", .y))), probs=~x$Prob)
-                  survey::svymean(~log_port,plan) |>
+                data = sampling::getdata(df_alunos |> dplyr::mutate(alunos = 1:n()), x) 
+                plan = survey::svydesign(data = data, ids = as.formula(paste("~", gsub("_", "+", .y))), probs=~x$Prob, fpc = rep(n, dim(x)[1]))
+                survey::svymean(~log_port,plan) |>
                   as.data.frame()
               }
              )
@@ -108,8 +109,8 @@ conglomerada_750 = function(df_alunos){
    conglomerada(df_alunos, 750)
 }
 conglomerada_ppt_500 = function(df_alunos){
-   conglomerada(df_alunos, 500)
+   conglomerada_ppt(df_alunos, 500)
 }
 conglomerada_ppt_750 = function(df_alunos){
-   conglomerada(df_alunos, 750)
+   conglomerada_ppt(df_alunos, 750)
 }
